@@ -11,7 +11,10 @@
     "test:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/testOracle.js",
     "monitor:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/monitorOracle.js",
     "test:real:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/realWorldTest.js",
-    "test:capacity:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/capacityTest.js"
+    "test:capacity:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/capacityTest.js",
+    "monitor:market": "node bot/marketMonitor.js",
+    "monitor:btc": "node bot/marketMonitor.js BTCUSDT binance ws",
+    "monitor:eth": "node bot/marketMonitor.js ETHUSDT binance ws"
   },
   "keywords": [
     "blockchain",
@@ -25,8 +28,9 @@
   "author": "COINjecture Protocol Team",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^16.3.1",
     "ethers": "^6.16.0",
-    "dotenv": "^16.3.1"
+    "ws": "^8.18.3"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -40,4 +44,3 @@
   },
   "homepage": "https://github.com/beanapologist/OracleBot#readme"
 }
-

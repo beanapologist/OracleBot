@@ -6,6 +6,9 @@ Automated testing and monitoring bot for the [COINjecture Holographic Oracle](ht
 
 - ✅ Comprehensive test suite with multiple scenarios
 - ✅ Continuous monitoring with configurable intervals
+- ✅ **Real-world market monitoring** (Binance, Polygon, etc.)
+- ✅ **Live market data → Oracle parameters** (η, λ mapping)
+- ✅ **Critical equilibrium detection** (Δ ≈ 231 alerts)
 - ✅ Input validation testing
 - ✅ Edge case coverage
 - ✅ CI/CD integration (GitHub Actions)
@@ -63,8 +66,16 @@ npm run test:real:amoy
 ### Start Monitoring
 
 ```bash
+# Contract health monitoring
 npm run monitor
+
+# Real-world market monitoring (NEW!)
+npm run monitor:btc    # Monitor Bitcoin
+npm run monitor:eth    # Monitor Ethereum
+npm run monitor:market SYMBOL SOURCE MODE  # Custom market
 ```
+
+See [MARKET_MONITORING.md](./MARKET_MONITORING.md) for detailed market monitoring guide.
 
 ### Run Capacity Tests
 
