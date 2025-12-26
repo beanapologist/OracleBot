@@ -100,6 +100,17 @@ npm run test:capacity # Full capacity testing
 npm run monitor       # Continuous monitoring
 ```
 
+### Market Monitoring Commands
+
+```bash
+npm run monitor:btc           # Monitor Bitcoin (Binance)
+npm run monitor:eth           # Monitor Ethereum (Binance)
+npm run monitor:polymarket    # Monitor Polymarket (default market)
+npm run monitor:polymarket:trump  # Monitor 2024 Election market
+```
+
+See [MARKET_MONITORING.md](./MARKET_MONITORING.md) and [POLYMARKET_GUIDE.md](./POLYMARKET_GUIDE.md) for detailed guides.
+
 ### Manual Execution
 
 ```bash

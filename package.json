@@ -14,7 +14,9 @@
     "test:capacity:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/capacityTest.js",
     "monitor:market": "node bot/marketMonitor.js",
     "monitor:btc": "node bot/marketMonitor.js BTCUSDT binance ws",
-    "monitor:eth": "node bot/marketMonitor.js ETHUSDT binance ws"
+    "monitor:eth": "node bot/marketMonitor.js ETHUSDT binance ws",
+    "monitor:polymarket": "node bot/polymarketMonitor.js",
+    "monitor:polymarket:trump": "node bot/polymarketMonitor.js will-donald-trump-win-the-2024-us-presidential-election"
   },
   "keywords": [
     "blockchain",
