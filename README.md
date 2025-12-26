@@ -66,10 +66,27 @@ npm run test:real:amoy
 npm run monitor
 ```
 
+### Run Capacity Tests
+
+Test the contract's full capacity, performance, and limits:
+
+```bash
+npm run test:capacity
+```
+
 Or with environment variables:
 
 ```bash
-npm run monitor:amoy
+npm run test:capacity:amoy
+```
+
+### All Test Commands
+
+```bash
+npm test              # Standard test suite
+npm run test:real     # Real-world scenarios
+npm run test:capacity # Full capacity testing
+npm run monitor       # Continuous monitoring
 ```
 
 ### Manual Execution

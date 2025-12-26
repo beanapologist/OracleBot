@@ -7,9 +7,11 @@
     "test": "node bot/testOracle.js",
     "monitor": "node bot/monitorOracle.js",
     "test:real": "node bot/realWorldTest.js",
+    "test:capacity": "node bot/capacityTest.js",
     "test:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/testOracle.js",
     "monitor:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/monitorOracle.js",
-    "test:real:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/realWorldTest.js"
+    "test:real:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/realWorldTest.js",
+    "test:capacity:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/capacityTest.js"
   },
   "keywords": [
     "blockchain",
