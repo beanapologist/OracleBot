@@ -6,6 +6,11 @@ const CONTRACT_ADDRESS = process.env.ORACLE_ADDRESS || "0xDfb81fDfb8DeCDc7Fb6489
 const RPC_URL = process.env.AMOY_RPC_URL || process.env.RPC_URL || "https://rpc-amoy.polygon.technology";
 const POLYGON_RPC = process.env.POLYGON_RPC || "https://polygon-rpc.com";
 
+// Polymarket GraphQL Subgraphs (Public, No Auth Required)
+const ORDERBOOK_SUBGRAPH = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/prod/gn";
+const PNL_SUBGRAPH = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn";
+const OI_SUBGRAPH = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/oi-subgraph/0.0.6/gn";
+
 /**
  * Polymarket Prediction Market Monitor
  * Monitors prediction markets and maps to Holographic Oracle
@@ -46,51 +51,116 @@ class PolymarketMonitor {
     }
 
     /**
-     * Fetch market data from Polymarket API
-     * Uses Polymarket's public API endpoints
+     * Fetch market data from Polymarket GraphQL Subgraph
+     * Uses public Goldsky orderbook subgraph - no authentication required
      */
-    async fetchPolymarketMarket(marketSlug) {
+    async fetchPolymarketMarket(marketSlugOrId) {
         try {
-            // Try multiple API endpoints
-            const endpoints = [
-                `https://clob.polymarket.com/markets/${marketSlug}`,
-                `https://api.polymarket.com/markets/${marketSlug}`,
-                `https://clob.polymarket.com/markets?slug=${marketSlug}`,
-            ];
-
-            for (const url of endpoints) {
-                try {
-                    const response = await fetch(url, {
-                        headers: {
-                            'Accept': 'application/json',
-                            'User-Agent': 'OracleBot/1.0.0'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && (data.id || data.slug || data.tokens)) {
-                            return data;
-                        }
-                        // If array response, find matching market
-                        if (Array.isArray(data) && data.length > 0) {
-                            const market = data.find(m => m.slug === marketSlug || m.id === marketSlug);
-                            if (market) return market;
-                        }
+            // Query orderbooks for volume data
+            const orderbookQuery = `
+                query GetOrderbooks {
+                    orderbooks(first: 10) {
+                        id
+                        buysQuantity
+                        sellsQuantity
+                        collateralBuyVolume
+                        collateralSellVolume
+                        scaledCollateralBuyVolume
+                        scaledCollateralSellVolume
                     }
-                } catch (e) {
-                    // Try next endpoint
-                    continue;
                 }
+            `;
+
+            // Query recent order filled events for price data
+            const orderEventsQuery = `
+                query GetRecentTrades {
+                    orderFilledEvents(
+                        first: 50,
+                        orderBy: timestamp,
+                        orderDirection: desc
+                    ) {
+                        id
+                        timestamp
+                        makerAmountFilled
+                        takerAmountFilled
+                        makerAssetId
+                        takerAssetId
+                    }
+                }
+            `;
+
+            // Query market data
+            const marketDataQuery = `
+                query GetMarketData {
+                    marketDatas(first: 10) {
+                        id
+                        condition
+                        outcomeIndex
+                    }
+                }
+            `;
+
+            // Fetch orderbook data
+            const obResponse = await fetch(ORDERBOOK_SUBGRAPH, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: orderbookQuery })
+            });
+
+            const obData = await obResponse.json();
+
+            // Fetch recent trades for price calculation
+            const eventsResponse = await fetch(ORDERBOOK_SUBGRAPH, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: orderEventsQuery })
+            });
+
+            const eventsData = await eventsResponse.json();
+
+            // Process data
+            if (obData.data?.orderbooks && obData.data.orderbooks.length > 0) {
+                const orderbook = obData.data.orderbooks[0]; // Use first orderbook
+                
+                // Calculate prices from recent trades
+                let recentPrice = 0.5; // Default
+                if (eventsData.data?.orderFilledEvents && eventsData.data.orderFilledEvents.length > 0) {
+                    // Use most recent trade to estimate price
+                    const recentTrade = eventsData.data.orderFilledEvents[0];
+                    // Price approximation from filled amounts
+                    const makerAmount = parseFloat(recentTrade.makerAmountFilled || 0);
+                    const takerAmount = parseFloat(recentTrade.takerAmountFilled || 0);
+                    if (makerAmount + takerAmount > 0) {
+                        recentPrice = makerAmount / (makerAmount + takerAmount);
+                    }
+                }
+
+                return {
+                    id: orderbook.id,
+                    question: marketSlugOrId,
+                    slug: marketSlugOrId,
+                    orders: [], // Orderbook doesn't have individual orders
+                    volume: parseFloat(orderbook.collateralVolume || 0),
+                    liquidity: parseFloat(orderbook.scaledCollateralVolume || 0),
+                    bidVolume: parseFloat(orderbook.collateralBuyVolume || 0),
+                    askVolume: parseFloat(orderbook.collateralSellVolume || 0),
+                    buysQuantity: parseFloat(orderbook.buysQuantity || 0),
+                    sellsQuantity: parseFloat(orderbook.sellsQuantity || 0),
+                    recentPrice: recentPrice
+                };
             }
 
-            // Fallback: Use simulated data for testing
-            console.log("⚠️  Using simulated market data (API not accessible)");
-            return this.generateSimulatedMarket(marketSlug);
+            // Fallback: Use simulated data
+            console.log("⚠️  Using simulated market data (subgraph not accessible)");
+            return this.generateSimulatedMarket(marketSlugOrId);
         } catch (error) {
-            console.error("❌ Failed to fetch Polymarket data:", error.message);
+            console.error("❌ Failed to fetch from GraphQL subgraph:", error.message);
             // Return simulated data as fallback
-            return this.generateSimulatedMarket(marketSlug);
+            return this.generateSimulatedMarket(marketSlugOrId);
         }
     }
 
@@ -153,26 +223,52 @@ class PolymarketMonitor {
     }
 
     /**
-     * Calculate λ (coupling) from betting imbalance
-     * Strong imbalance → high coupling (herding)
+     * Calculate λ (coupling) from orderbook imbalance
+     * Uses orderbook data directly
+     * Strong imbalance → high coupling (herding behavior)
+     */
+    calculateLambdaFromOrderbook(orders) {
+        if (!orders || orders.length === 0) return 0.707;
+
+        // Separate bids (buy orders) and asks (sell orders)
+        const bids = orders.filter(o => o.side === 'buy' || o.side === 'bid' || o.side === 'yes');
+        const asks = orders.filter(o => o.side === 'sell' || o.side === 'ask' || o.side === 'no');
+
+        // Calculate total volume on each side
+        const bidVolume = bids.reduce((sum, o) => sum + parseFloat(o.size || 0), 0);
+        const askVolume = asks.reduce((sum, o) => sum + parseFloat(o.size || 0), 0);
+
+        if (bidVolume === 0 && askVolume === 0) return 0.707;
+
+        // Order book imbalance: (bid - ask) / (bid + ask)
+        // Range: -1 (all asks) to +1 (all bids)
+        const totalVolume = bidVolume + askVolume;
+        const imbalance = (bidVolume - askVolume) / totalVolume;
+
+        // Strong imbalance (|imbalance| → 1) → high coupling
+        // Balanced (imbalance → 0) → moderate coupling
+        const couplingStrength = Math.abs(imbalance);
+
+        // Scale to critical damping range (0.3 to 0.9)
+        // At critical: both η and λ should be ~0.707
+        const lambda = 0.3 + (couplingStrength * 0.6);
+
+        return Math.max(0.1, Math.min(0.95, lambda));
+    }
+
+    /**
+     * Calculate λ (coupling) from betting imbalance (fallback)
      */
     calculateLambda(yesVolume, noVolume, yesPrice, noPrice) {
         if (yesVolume === 0 && noVolume === 0) return 0.707;
 
-        // Betting imbalance: (yes - no) / (yes + no)
         const totalVolume = yesVolume + noVolume;
         const imbalance = totalVolume > 0 ? (yesVolume - noVolume) / totalVolume : 0;
 
-        // Price spread also indicates coupling
-        // Tight spread → high coupling (consensus)
-        // Wide spread → low coupling (disagreement)
         const priceSpread = Math.abs(yesPrice - noPrice);
-        const spreadFactor = Math.max(0, 1 - priceSpread * 2); // Normalize spread
+        const spreadFactor = Math.max(0, 1 - priceSpread * 2);
 
-        // Combine imbalance and spread
         const couplingStrength = (Math.abs(imbalance) + spreadFactor) / 2;
-
-        // Scale to critical damping range
         const lambda = 0.3 + (couplingStrength * 0.6);
 
         return Math.max(0.1, Math.min(0.95, lambda));
@@ -230,7 +326,7 @@ class PolymarketMonitor {
             try {
                 const market = await this.fetchPolymarketMarket(marketSlug);
                 
-                if (!market || !market.tokens) {
+                if (!market) {
                     console.log("⚠️  Market data not available, retrying...\n");
                     if (this.isRunning) {
                         setTimeout(poll, this.updateInterval);
@@ -238,25 +334,16 @@ class PolymarketMonitor {
                     return;
                 }
 
-                // Extract market data
-                const yesToken = market.tokens.find(t => t.side === 'yes' || t.outcome === 'Yes');
-                const noToken = market.tokens.find(t => t.side === 'no' || t.outcome === 'No');
+                // Extract market data from GraphQL response
+                const bidVolume = parseFloat(market.bidVolume || market.collateralBuyVolume || 0);
+                const askVolume = parseFloat(market.askVolume || market.collateralSellVolume || 0);
+                const buysQuantity = parseFloat(market.buysQuantity || 0);
+                const sellsQuantity = parseFloat(market.sellsQuantity || 0);
+                const volume = parseFloat(market.volume || market.collateralVolume || 0);
+                const liquidity = parseFloat(market.liquidity || market.scaledCollateralVolume || 0);
 
-                if (!yesToken || !noToken) {
-                    console.log("⚠️  Market structure not recognized\n");
-                    if (this.isRunning) {
-                        setTimeout(poll, this.updateInterval);
-                    }
-                    return;
-                }
-
-                const yesPrice = parseFloat(yesToken.price || yesToken.lastPrice || 0.5);
-                const noPrice = parseFloat(noToken.price || noToken.lastPrice || 0.5);
-                const yesVolume = parseFloat(yesToken.volume24h || yesToken.volume || 0);
-                const noVolume = parseFloat(noToken.volume24h || noToken.volume || 0);
-
-                // Use yes price as primary metric
-                const currentPrice = yesPrice;
+                // Use recent price from trades, or default to 0.5
+                const currentPrice = market.recentPrice || 0.5;
 
                 // Update price history
                 this.priceHistory.push(currentPrice);
@@ -265,8 +352,16 @@ class PolymarketMonitor {
                 }
 
                 // Calculate parameters
+                // η (damping): From price volatility
                 const eta = this.calculateEta(this.priceHistory);
-                const lambda = this.calculateLambda(yesVolume, noVolume, yesPrice, noPrice);
+                
+                // λ (coupling): From orderbook imbalance
+                // Use buy/sell volume imbalance
+                const lambda = this.calculateLambda(bidVolume, askVolume, currentPrice, 1 - currentPrice);
+
+                // Best bid/ask approximation from price
+                const bestBid = currentPrice * 0.99; // Slightly below mid
+                const bestAsk = currentPrice * 1.01; // Slightly above mid
 
                 // Compute oracle delta
                 const result = await this.computeOracleDelta(eta, lambda);
@@ -274,10 +369,15 @@ class PolymarketMonitor {
                 if (result) {
                     this.updateStats(result);
                     this.displayReading(marketSlug, market.question || marketSlug, {
-                        yesPrice,
-                        noPrice,
-                        yesVolume,
-                        noVolume,
+                        bestBid,
+                        bestAsk,
+                        midPrice: currentPrice,
+                        bidVolume,
+                        askVolume,
+                        buysQuantity,
+                        sellsQuantity,
+                        totalVolume: volume,
+                        liquidity,
                         result
                     });
 
@@ -389,9 +489,11 @@ class PolymarketMonitor {
         
         console.log(`[${timestamp}] ${marketSlug}`);
         console.log(`   Question: ${question}`);
-        if (data.yesPrice !== undefined) {
-            console.log(`   Yes: $${data.yesPrice.toFixed(3)} | No: $${data.noPrice.toFixed(3)}`);
-            console.log(`   Volume: Yes=${data.yesVolume.toFixed(0)}, No=${data.noVolume.toFixed(0)}`);
+        if (data.bestBid !== undefined) {
+            console.log(`   Price: $${data.midPrice.toFixed(3)} (Bid: $${data.bestBid.toFixed(3)}, Ask: $${data.bestAsk.toFixed(3)})`);
+            console.log(`   Volume: Buy=${data.bidVolume.toFixed(0)}, Sell=${data.askVolume.toFixed(0)}`);
+            console.log(`   Orders: Buy=${data.buysQuantity || 0}, Sell=${data.sellsQuantity || 0}`);
+            console.log(`   Total Volume: ${data.totalVolume.toFixed(0)} | Liquidity: ${data.liquidity.toFixed(0)}`);
         }
         console.log(`   η=${data.result.eta.toFixed(3)}, λ=${data.result.lambda.toFixed(3)}`);
         console.log(`   Δ=${data.result.delta} (${data.result.deltaDecimal.toFixed(3)})`);
