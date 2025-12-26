@@ -49,13 +49,15 @@ MONITOR_INTERVAL_MINUTES=5
 ### Run Test Suite
 
 ```bash
+# Standard test suite
 npm test
-```
 
-Or with environment variables:
+# Real-world scenario testing (recommended)
+npm run test:real
 
-```bash
+# With environment variables
 npm run test:amoy
+npm run test:real:amoy
 ```
 
 ### Start Monitoring
@@ -82,7 +84,7 @@ node bot/monitorOracle.js
 
 ## 📊 Test Scenarios
 
-The bot tests the following scenarios:
+### Standard Test Suite (`npm test`)
 
 1. **Critical Damping (Optimal)**: η = λ = 1/√2
    - Expected: Δ ≈ 230, IsOptimal = true
@@ -98,6 +100,32 @@ The bot tests the following scenarios:
 
 5. **Balanced (Near Optimal)**: η = λ = 0.7
    - Tests near-optimal conditions
+
+### Real-World Scenarios (`npm run test:real`)
+
+1. **Optimal State**: Network at peak efficiency
+   - Tests critical damping conditions
+   - Validates optimal performance metrics
+
+2. **High Stress**: Network under congestion
+   - Simulates high transaction load
+   - Tests degradation detection
+
+3. **Recovery**: Network returning to normal
+   - Tests recovery patterns
+   - Validates efficiency improvements
+
+4. **Failure State**: Critical network failure
+   - Tests failure detection
+   - Validates error handling
+
+5. **Continuous Monitoring**: Multiple readings over time
+   - Simulates real-time monitoring
+   - Tests consistency and stability
+
+6. **Boundary Conditions**: Contract limits
+   - Tests Planck boundaries
+   - Validates edge case handling
 
 ## 🔧 CI/CD
 
