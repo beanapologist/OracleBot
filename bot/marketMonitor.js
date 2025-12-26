@@ -145,7 +145,9 @@ class MarketMonitor {
         console.log(`📊 Monitoring Binance: ${symbol}`);
         console.log("   Connecting to WebSocket...\n");
 
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@ticker`);
+        // Binance WebSocket format: wss://stream.binance.com:9443/ws/btcusdt@ticker
+        const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@ticker`;
+        const ws = new WebSocket(wsUrl);
 
         ws.on('open', () => {
             console.log("✅ Connected to Binance WebSocket\n");

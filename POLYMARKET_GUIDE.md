@@ -145,12 +145,22 @@ Edit `bot/polymarketMonitor.js` to:
 - Modify coupling calculation method
 - Add custom market filters
 
+## GraphQL Subgraph Endpoints
+
+The monitor uses Polymarket's public GraphQL subgraphs (no authentication required):
+
+- **Orderbook Subgraph**: `https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/prod/gn`
+  - Provides: Volume, buy/sell quantities, orderbook statistics
+- **PNL Subgraph**: `https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn`
+- **OI Subgraph**: `https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/oi-subgraph/0.0.6/gn`
+
+All subgraphs update in real-time as blocks are mined on Polygon.
+
 ## API Limitations
 
-Polymarket's public API has rate limits:
-- **Free tier**: Limited requests
-- **Recommendation**: Use 5-10 second intervals
-- **Alternative**: Use Polymarket's GraphQL API with authentication
+- **No rate limits**: Public subgraphs, free to use
+- **Real-time**: Updates with every block
+- **Recommendation**: Use 5-10 second intervals to avoid overwhelming
 
 ## Troubleshooting
 
