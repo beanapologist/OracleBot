@@ -6,12 +6,14 @@ on:
     paths:
       - 'bot/**'
       - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/oracle-tests.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'bot/**'
       - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/oracle-tests.yml'
   schedule:
     # Run daily at 00:00 UTC
