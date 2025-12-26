@@ -7,3 +7,7 @@ logs/
 *.swo
 *~
 
+# Test results (generated files)
+bot/test-results-*.json
+bot/test-results-*.txt
+

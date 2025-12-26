@@ -54,15 +54,35 @@ jobs:
             bot/test-results-*.json
             bot/test-results-*.txt
           if-no-files-found: ignore
+          retention-days: 7
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
-            const comment = '## 🤖 Oracle Contract Test Results\n\n' +
-              '✅ Tests completed. Check the workflow logs for details.\n\n' +
-              'View full results in the workflow artifacts.';
+            const fs = require('fs');
+            const path = require('path');
+            
+            let comment = '## 🤖 Oracle Contract Test Results\n\n';
+            
+            try {
+              const botDir = path.join(process.cwd(), 'bot');
+              const files = fs.readdirSync(botDir);
+              const resultFiles = files.filter(f => f.startsWith('test-results-') && f.endsWith('.txt'));
+              
+              if (resultFiles.length > 0) {
+                const latestFile = resultFiles.sort().reverse()[0];
+                const results = fs.readFileSync(path.join(botDir, latestFile), 'utf8');
+                comment += '```\n' + results + '\n```\n';
+              } else {
+                comment += '✅ Tests completed. Check the workflow logs for details.\n';
+              }
+            } catch (e) {
+              comment += '✅ Tests completed. Check the workflow logs for details.\n';
+            }
+            
+            comment += '\nView full results in the workflow artifacts.';
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -70,4 +90,3 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-

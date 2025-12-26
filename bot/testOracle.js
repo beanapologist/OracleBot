@@ -1,4 +1,6 @@
 const { ethers } = require("ethers");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 const contractABI = require("./contractABI.json");
 
@@ -290,6 +292,83 @@ class OracleTester {
         }
 
         console.log("\n" + "=".repeat(60));
+
+        // Write results to files for CI/CD
+        this.writeResultsToFiles(total, passed, failed);
+    }
+
+    writeResultsToFiles(total, passed, failed) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const resultsDir = path.join(__dirname);
+        
+        // Create summary object
+        const summary = {
+            timestamp: new Date().toISOString(),
+            total,
+            passed,
+            failed,
+            successRate: ((passed / total) * 100).toFixed(1),
+            results: this.results
+        };
+
+        // Write JSON file
+        const jsonFile = path.join(resultsDir, `test-results-${timestamp}.json`);
+        try {
+            fs.writeFileSync(jsonFile, JSON.stringify(summary, null, 2));
+            console.log(`\n📄 Results written to: ${jsonFile}`);
+        } catch (error) {
+            console.error(`\n⚠️  Failed to write JSON results: ${error.message}`);
+        }
+
+        // Write text file
+        const txtFile = path.join(resultsDir, `test-results-${timestamp}.txt`);
+        try {
+            let textContent = "=".repeat(60) + "\n";
+            textContent += "ORACLE CONTRACT TEST RESULTS\n";
+            textContent += "=".repeat(60) + "\n\n";
+            textContent += `Timestamp: ${summary.timestamp}\n`;
+            textContent += `Total Tests: ${total}\n`;
+            textContent += `✅ Passed: ${passed}\n`;
+            textContent += `❌ Failed: ${failed}\n`;
+            textContent += `Success Rate: ${summary.successRate}%\n\n`;
+
+            if (failed > 0) {
+                textContent += "Failed Tests:\n";
+                this.results
+                    .filter(r => r.success === false)
+                    .forEach(r => {
+                        textContent += `  - ${r.scenario}: ${r.error || r.validation?.message}\n`;
+                    });
+                textContent += "\n";
+            }
+
+            textContent += "Detailed Results:\n";
+            this.results.forEach((result, index) => {
+                textContent += `\n${index + 1}. ${result.scenario}\n`;
+                if (result.delta !== undefined) {
+                    textContent += `   Δ: ${result.delta}\n`;
+                }
+                if (result.efficiencyPercent !== undefined) {
+                    textContent += `   Efficiency: ${result.efficiencyPercent.toFixed(2)}%\n`;
+                }
+                if (result.isOptimal !== undefined) {
+                    textContent += `   Is Optimal: ${result.isOptimal}\n`;
+                }
+                if (result.success === false) {
+                    textContent += `   Status: ❌ FAILED\n`;
+                    if (result.error) {
+                        textContent += `   Error: ${result.error}\n`;
+                    }
+                } else {
+                    textContent += `   Status: ✅ PASSED\n`;
+                }
+            });
+
+            fs.writeFileSync(txtFile, textContent);
+            console.log(`📄 Results written to: ${txtFile}`);
+        } catch (error) {
+            console.error(`\n⚠️  Failed to write text results: ${error.message}`);
+        }
     }
 
     async runAllTests() {
