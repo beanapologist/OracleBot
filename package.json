@@ -1,0 +1,39 @@
+{
+  "name": "coinjecture-oracle-monitor",
+  "version": "1.0.0",
+  "description": "Automated testing and monitoring bot for COINjecture Holographic Oracle smart contract",
+  "main": "bot/testOracle.js",
+  "scripts": {
+    "test": "node bot/testOracle.js",
+    "monitor": "node bot/monitorOracle.js",
+    "test:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/testOracle.js",
+    "monitor:amoy": "ORACLE_ADDRESS=0xDfb81fDfb8DeCDc7Fb6489d0022CD23697EEa3aE node bot/monitorOracle.js"
+  },
+  "keywords": [
+    "blockchain",
+    "oracle",
+    "monitoring",
+    "testing",
+    "ethereum",
+    "polygon",
+    "smart-contracts"
+  ],
+  "author": "COINjecture Protocol Team",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.16.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beanapologist/OracleBot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beanapologist/OracleBot/issues"
+  },
+  "homepage": "https://github.com/beanapologist/OracleBot#readme"
+}
+
